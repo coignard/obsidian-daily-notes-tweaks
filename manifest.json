@@ -1,7 +1,7 @@
 {
     "id": "daily-notes-tweaks",
     "name": "Daily Notes Tweaks",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "minAppVersion": "1.18.10",
     "description": "Open a random daily note and automatically switch past daily notes to reading mode.",
     "author": "René Coignard",

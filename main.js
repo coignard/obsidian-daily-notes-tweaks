@@ -1,4 +1,4 @@
-const { Plugin, MarkdownView, PluginSettingTab, Setting, Notice } = require('obsidian');
+const { Plugin, MarkdownView, PluginSettingTab, Setting, Notice, moment, normalizePath } = require('obsidian');
 
 const DEFAULT_SETTINGS = {
     enableAutoReadingMode: true
@@ -65,14 +65,14 @@ module.exports = class DailyNotesTweaksPlugin extends Plugin {
         const dateFormat = config.format;
         const noteFolder = config.folder;
 
-        const currentDate = window.moment();
+        const currentDate = moment();
         const formattedFilename = currentDate.format(dateFormat);
 
-        if (noteFolder && noteFolder !== '/' && noteFolder !== '') {
-            return noteFolder + '/' + formattedFilename + '.md';
-        } else {
-            return formattedFilename + '.md';
-        }
+        const path = noteFolder
+            ? `${noteFolder}/${formattedFilename}.md`
+            : `${formattedFilename}.md`;
+
+        return normalizePath(path);
     }
 
     isCurrentDailyNote(filePath = null) {
@@ -83,7 +83,7 @@ module.exports = class DailyNotesTweaksPlugin extends Plugin {
         }
 
         const todayNotePath = this.getCurrentDailyNotePath();
-        return filePath === todayNotePath;
+        return normalizePath(filePath) === todayNotePath;
     }
 
     isDailyNote(filePath) {
@@ -91,16 +91,19 @@ module.exports = class DailyNotesTweaksPlugin extends Plugin {
         const noteFolder = config.folder;
         const dateFormat = config.format;
 
-        if (noteFolder && noteFolder !== '/' && noteFolder !== '') {
-            if (!filePath.startsWith(noteFolder + '/')) {
+        const normalizedFilePath = normalizePath(filePath);
+        const normalizedFolder = noteFolder ? normalizePath(noteFolder) : '';
+
+        if (normalizedFolder) {
+            if (!normalizedFilePath.startsWith(normalizedFolder + '/')) {
                 return false;
             }
         }
 
-        const fileBasename = filePath.split('/').pop().replace('.md', '');
+        const fileBasename = normalizedFilePath.split('/').pop().replace('.md', '');
 
         try {
-            const parsedDate = window.moment(fileBasename, dateFormat, true);
+            const parsedDate = moment(fileBasename, dateFormat, true);
             return parsedDate.isValid();
         } catch (error) {
             return false;
@@ -110,11 +113,14 @@ module.exports = class DailyNotesTweaksPlugin extends Plugin {
     getAllDailyNotes() {
         const config = this.getDailyNoteConfiguration();
         const noteFolder = config.folder;
+        const normalizedFolder = noteFolder ? normalizePath(noteFolder) : '';
 
         let allMarkdownFiles = this.app.vault.getMarkdownFiles();
 
-        if (noteFolder && noteFolder !== '/' && noteFolder !== '') {
-            allMarkdownFiles = allMarkdownFiles.filter(file => file.path.startsWith(noteFolder + '/'));
+        if (normalizedFolder) {
+            allMarkdownFiles = allMarkdownFiles.filter(file =>
+                normalizePath(file.path).startsWith(normalizedFolder + '/')
+            );
         }
 
         const dailyNoteFiles = allMarkdownFiles.filter(file => this.isDailyNote(file.path));
