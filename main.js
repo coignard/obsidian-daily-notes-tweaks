@@ -86,40 +86,23 @@ module.exports = class DailyNotesTweaksPlugin extends Plugin {
         await this.saveData(this.settings);
     }
 
-/*    getDailyNoteConfiguration() {
-        const dailyNotesPlugin = this.app.internalPlugins.plugins['daily-notes']?.instance?.options;
-        if (dailyNotesPlugin) {
+    getDailyNoteConfiguration() {
+        const instance = this.app.internalPlugins.getPluginById('daily-notes')?.instance;
+        if (instance) {
+            let folder = instance.options?.folder || '';
+            if (folder === '/' || folder === '\\') folder = '';
             return {
-                format: dailyNotesPlugin.format || 'YYYY-MM-DD',
-                folder: dailyNotesPlugin.folder || '',
-                template: dailyNotesPlugin.template
+                format: instance.options?.format || 'YYYY-MM-DD',
+                folder: folder,
+                template: instance.options?.template
             };
         }
-
-        const vaultConfig = this.app.vault.config;
         return {
-            format: vaultConfig?.dailyNoteFormat || 'YYYY-MM-DD',
-            folder: vaultConfig?.dailyNoteFolder || '',
-            template: vaultConfig?.dailyNoteTemplate
-        };
-    }*/
-
-getDailyNoteConfiguration() {
-    const instance = this.app.internalPlugins.getPluginById('daily-notes')?.instance;
-    if (instance) {
-        return {
-            format: instance.options?.format || 'YYYY-MM-DD',
-            folder: instance.options?.folder || '',
-            template: instance.options?.template
+            format: 'YYYY-MM-DD',
+            folder: '',
+            template: undefined
         };
     }
-
-    return {
-        format: 'YYYY-MM-DD',
-        folder: '',
-        template: undefined
-    };
-}
 
     getCurrentDailyNotePath() {
         const config = this.getDailyNoteConfiguration();
@@ -169,24 +152,6 @@ getDailyNoteConfiguration() {
         } catch (error) {
             return false;
         }
-    }
-
-    getDailyNoteConfiguration() {
-        const instance = this.app.internalPlugins.getPluginById('daily-notes')?.instance;
-        if (instance) {
-            let folder = instance.options?.folder || '';
-            if (folder === '/' || folder === '\\') folder = '';
-            return {
-                format: instance.options?.format || 'YYYY-MM-DD',
-                folder: folder,
-                template: instance.options?.template
-            };
-        }
-        return {
-            format: 'YYYY-MM-DD',
-            folder: '',
-            template: undefined
-        };
     }
 
     getAllDailyNotes() {
