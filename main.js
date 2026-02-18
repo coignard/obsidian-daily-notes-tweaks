@@ -1,7 +1,9 @@
 const { Plugin, MarkdownView, PluginSettingTab, Setting, Notice, moment, normalizePath } = require('obsidian');
 
 const DEFAULT_SETTINGS = {
-    enableAutoReadingMode: true
+    enableAutoReadingMode: true,
+    disableCopying: false,
+    highlightAsUnderline: false
 };
 
 module.exports = class DailyNotesTweaksPlugin extends Plugin {
@@ -31,7 +33,49 @@ module.exports = class DailyNotesTweaksPlugin extends Plugin {
             );
         }
 
+        if (this.settings.disableCopying) {
+            this.enableCopyProtection();
+        }
+
         this.addSettingTab(new DailyNotesTweaksSettingTab(this.app, this));
+    }
+
+    enableCopyProtection() {
+        this.copyHandler = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+            new Notice('Copying is disabled');
+            return false;
+        };
+
+        this.cutHandler = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+            new Notice('Cutting is disabled');
+            return false;
+        };
+
+        this.contextMenuHandler = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+            return false;
+        };
+
+        this.registerDomEvent(document, 'copy', this.copyHandler, true);
+        this.registerDomEvent(document, 'cut', this.cutHandler, true);
+        this.registerDomEvent(document, 'contextmenu', this.contextMenuHandler, true);
+
+        this.beforeCopyHandler = (e) => {
+            e.preventDefault();
+            return false;
+        };
+        this.registerDomEvent(document, 'beforecopy', this.beforeCopyHandler, true);
+    }
+
+    disableCopyProtection() {
     }
 
     async loadSettings() {
@@ -42,7 +86,7 @@ module.exports = class DailyNotesTweaksPlugin extends Plugin {
         await this.saveData(this.settings);
     }
 
-    getDailyNoteConfiguration() {
+/*    getDailyNoteConfiguration() {
         const dailyNotesPlugin = this.app.internalPlugins.plugins['daily-notes']?.instance?.options;
         if (dailyNotesPlugin) {
             return {
@@ -58,7 +102,24 @@ module.exports = class DailyNotesTweaksPlugin extends Plugin {
             folder: vaultConfig?.dailyNoteFolder || '',
             template: vaultConfig?.dailyNoteTemplate
         };
+    }*/
+
+getDailyNoteConfiguration() {
+    const instance = this.app.internalPlugins.getPluginById('daily-notes')?.instance;
+    if (instance) {
+        return {
+            format: instance.options?.format || 'YYYY-MM-DD',
+            folder: instance.options?.folder || '',
+            template: instance.options?.template
+        };
     }
+
+    return {
+        format: 'YYYY-MM-DD',
+        folder: '',
+        template: undefined
+    };
+}
 
     getCurrentDailyNotePath() {
         const config = this.getDailyNoteConfiguration();
@@ -108,6 +169,24 @@ module.exports = class DailyNotesTweaksPlugin extends Plugin {
         } catch (error) {
             return false;
         }
+    }
+
+    getDailyNoteConfiguration() {
+        const instance = this.app.internalPlugins.getPluginById('daily-notes')?.instance;
+        if (instance) {
+            let folder = instance.options?.folder || '';
+            if (folder === '/' || folder === '\\') folder = '';
+            return {
+                format: instance.options?.format || 'YYYY-MM-DD',
+                folder: folder,
+                template: instance.options?.template
+            };
+        }
+        return {
+            format: 'YYYY-MM-DD',
+            folder: '',
+            template: undefined
+        };
     }
 
     getAllDailyNotes() {
@@ -193,6 +272,28 @@ class DailyNotesTweaksSettingTab extends PluginSettingTab {
                 .onChange(async (value) => {
                     this.plugin.settings.enableAutoReadingMode = value;
                     await this.plugin.saveSettings();
+                }));
+
+        new Setting(containerEl)
+            .setName('Disable copying')
+            .setDesc('Prevent copying text via keyboard shortcuts and context menu')
+            .addToggle(toggle => toggle
+                .setValue(this.plugin.settings.disableCopying)
+                .onChange(async (value) => {
+                    this.plugin.settings.disableCopying = value;
+                    await this.plugin.saveSettings();
+                    new Notice('Please reload the plugin for changes to take effect');
+                }));
+
+        new Setting(containerEl)
+            .setName('Highlight as underline')
+            .setDesc('Replace highlight background with underline style.')
+            .addToggle(toggle => toggle
+                .setValue(this.plugin.settings.highlightAsUnderline)
+                .onChange(async (value) => {
+                    this.plugin.settings.highlightAsUnderline = value;
+                    await this.plugin.saveSettings();
+                    new Notice('Please reload the plugin for changes to take effect');
                 }));
     }
 }
